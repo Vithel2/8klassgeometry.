@@ -2,7 +2,7 @@
 
 Офлайн-приложение на русском для Android 6.0+ (API 23). Без аккаунта, интернета, рекламы и покупок.
 
-**[Скачать APK 2.0](https://github.com/Vithel2/8klassgeometry./releases/download/v2.0/geometry-8-v2.0.apk)** · [Страница выпуска](https://github.com/Vithel2/8klassgeometry./releases/tag/v2.0)
+**[Скачать APK 2.0](https://raw.githubusercontent.com/Vithel2/8klassgeometry./abcd354a42f9546bfbe46e809f2bfca8bbfc774b/downloads/geometry-8.apk)** · [Страница выпуска](https://github.com/Vithel2/8klassgeometry./releases/tag/v2.0)
 
 Приложение изменено: `versionName=2.0`, `versionCode=4`. Это новая сборка с новыми исходниками, а не старый APK.
 
@@ -35,7 +35,7 @@ APK подписан отладочным сертификатом. Подпис
 3. `:app:assembleDebug :app:lintDebug`: успешно, 0 ошибок Lint; 2 ожидаемых предупреждения — включённый JavaScript для локального интерфейса и атрибут Android 13 при поддержке старых API. AGP 8.7.3, Gradle 8.9, compile/targetSdk 35, build-tools 34.0.0. Локальная сборка JDK 21; CI сохраняет JDK 17.
 4. `apksigner verify`: подпись v1/v2 корректна. `aapt`: пакет `ru.geometry.trainer`, версия 2.0, код 4; в итоговом манифесте три alias и правильные ресурсы иконок.
 5. `tests/verify-apk.py`: каждый asset в APK побайтно совпадает с актуальным исходником, в том числе интерфейс настроек, engine и темы Пифагора. Браузерные проверки повторены на файлах, извлечённых непосредственно из APK.
-6. После публикации скачанный Release APK сравнивается по SHA-256 с проверенным файлом. `downloads/geometry-8.apk` заменён тем же файлом.
+6. После публикации публичный APK скачан по прямой ссылке без авторизации и сверен по SHA-256 с проверенным файлом. `downloads/geometry-8.apk` заменён тем же файлом.
 
 **На настоящем Android и эмуляторе приложение не запускалось.** В среде нет подключённого устройства и `/dev/kvm`. Нативное отображение WebView, смена значка конкретным launcher, тактильный отклик, системные жесты и поведение Android при выгрузке процесса требуют проверки на устройстве. Браузерные тесты обработчика Back не заменяют такой запуск.
 
@@ -54,4 +54,4 @@ gradle --no-daemon :app:assembleDebug :app:lintDebug
 python3 tests/verify-apk.py app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Основной workflow только один: `.github/workflows/android.yml`. Он проверяет математику и интерфейс, явно устанавливает нужные SDK-пакеты без устаревшего `tools`, собирает и проверяет APK, публикует artifact вместе с Lint-отчётом и скриншотами. Публичный Release 2.0 содержит именно отдельно проверенную сборку и SHA-256.
+Основной workflow только один: `.github/workflows/android.yml`. Он проверяет математику и интерфейс, явно устанавливает нужные SDK-пакеты без устаревшего `tools`, собирает и проверяет APK, публикует artifact вместе с Lint-отчётом и скриншотами. Публичный Release 2.0 содержит ссылки на отдельно проверенную сборку и SHA-256 в репозитории. Загрузка бинарного вложения на uploads.github.com отклонена GitHub с HTTP 401, поэтому используется публичная прямая ссылка на файл в зафиксированном коммите.
