@@ -6,6 +6,9 @@ import android.graphics.Color;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
+import android.webkit.JsResult;
+import android.app.AlertDialog;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 public class MainActivity extends Activity {
@@ -29,6 +32,19 @@ public class MainActivity extends Activity {
   web.setWebViewClient(new WebViewClient() {
    @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
   });
+  web.setWebChromeClient(new WebChromeClient() {
+   @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+    new AlertDialog.Builder(MainActivity.this).setMessage(message)
+     .setPositiveButton("Да", (dialog, which) -> result.confirm())
+     .setNegativeButton("Отмена", (dialog, which) -> result.cancel())
+     .setOnCancelListener(dialog -> result.cancel()).show();
+    return true;
+   }
+  });
+  if (Build.VERSION.SDK_INT >= 33) {
+   getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+  }
   web.loadUrl("file:///android_asset/index.html");
  }
  private void setSystemTheme(boolean dark) {
@@ -39,6 +55,11 @@ public class MainActivity extends Activity {
   if (!dark && Build.VERSION.SDK_INT >= 26) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
   getWindow().getDecorView().setSystemUiVisibility(flags);
  }
- @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+ private void handleBack() {
+  web.evaluateJavascript("window.handleAndroidBack ? window.handleAndroidBack() : false", handled -> {
+   if (!"true".equals(handled)) finish();
+  });
+ }
+ @Override public void onBackPressed() { handleBack(); }
  @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
 }
