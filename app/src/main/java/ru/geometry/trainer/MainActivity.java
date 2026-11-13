@@ -4,11 +4,11 @@ import android.os.Bundle;
 import android.os.Build;
 import android.graphics.Color;
 import android.view.View;
+import android.view.HapticFeedbackConstants;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
-import android.webkit.WebChromeClient;
-import android.webkit.JsResult;
-import android.app.AlertDialog;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 public class MainActivity extends Activity {
@@ -21,45 +21,39 @@ public class MainActivity extends Activity {
   });
   setSystemTheme(false);
   web.addJavascriptInterface(new Object() {
-   @JavascriptInterface public void setDarkMode(boolean dark) {
-    runOnUiThread(() -> setSystemTheme(dark));
+   @JavascriptInterface public void setDarkMode(boolean dark) { runOnUiThread(() -> setSystemTheme(dark)); }
+   @JavascriptInterface public void haptic() { runOnUiThread(() -> web.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)); }
+   @JavascriptInterface public void setIcon(String icon) {
+    if (!icon.equals("Angle") && !icon.equals("Triangle") && !icon.equals("Diamond")) return;
+    runOnUiThread(() -> {
+     PackageManager pm = getPackageManager();
+     // Enable the selected alias first: the package must always retain a launcher.
+     pm.setComponentEnabledSetting(new ComponentName(MainActivity.this, "ru.geometry.trainer." + icon), PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+     for (String name : new String[]{"Angle", "Triangle", "Diamond"}) {
+      if (!name.equals(icon)) pm.setComponentEnabledSetting(new ComponentName(MainActivity.this, "ru.geometry.trainer." + name), PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+     }
+    });
    }
   }, "AndroidTheme");
   web.getSettings().setJavaScriptEnabled(true);
   web.getSettings().setDomStorageEnabled(true);
   web.getSettings().setAllowFileAccess(false);
   web.getSettings().setAllowContentAccess(false);
+  web.getSettings().setBlockNetworkLoads(true);
   web.setWebViewClient(new WebViewClient() {
    @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
   });
-  web.setWebChromeClient(new WebChromeClient() {
-   @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
-    new AlertDialog.Builder(MainActivity.this).setMessage(message)
-     .setPositiveButton("Да", (dialog, which) -> result.confirm())
-     .setNegativeButton("Отмена", (dialog, which) -> result.cancel())
-     .setOnCancelListener(dialog -> result.cancel()).show();
-    return true;
-   }
-  });
-  if (Build.VERSION.SDK_INT >= 33) {
-   getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
-  }
+  if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
   web.loadUrl("file:///android_asset/index.html");
  }
  private void setSystemTheme(boolean dark) {
   int color = Color.parseColor(dark ? "#101725" : "#f3f6fc");
-  getWindow().setStatusBarColor(color);
-  getWindow().setNavigationBarColor(color);
+  getWindow().setStatusBarColor(color);getWindow().setNavigationBarColor(color);
   int flags = dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
   if (!dark && Build.VERSION.SDK_INT >= 26) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
   getWindow().getDecorView().setSystemUiVisibility(flags);
  }
- private void handleBack() {
-  web.evaluateJavascript("window.handleAndroidBack ? window.handleAndroidBack() : false", handled -> {
-   if (!"true".equals(handled)) finish();
-  });
- }
+ private void handleBack() { web.evaluateJavascript("window.handleAndroidBack ? window.handleAndroidBack() : false", handled -> { if (!"true".equals(handled)) finish(); }); }
  @Override public void onBackPressed() { handleBack(); }
  @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
 }

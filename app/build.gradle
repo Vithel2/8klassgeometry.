@@ -2,5 +2,5 @@ plugins { id 'com.android.application' }
 android {
  namespace 'ru.geometry.trainer'
  compileSdk 35
- defaultConfig { applicationId 'ru.geometry.trainer'; minSdk 23; targetSdk 35; versionCode 3; versionName '1.2' }
+ defaultConfig { applicationId 'ru.geometry.trainer'; minSdk 23; targetSdk 35; versionCode 4; versionName '2.0' }
 }

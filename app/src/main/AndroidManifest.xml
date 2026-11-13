@@ -1,1 +1,24 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="@string/app_name" android:icon="@drawable/ic_geometry" android:dataExtractionRules="@xml/data_extraction_rules" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:supportsRtl="true"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+<?xml version="1.0" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="@string/app_name" android:icon="@drawable/ic_geometry" android:dataExtractionRules="@xml/data_extraction_rules" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:fullBackupContent="false" android:supportsRtl="true" android:enableOnBackInvokedCallback="true">
+    <activity android:name=".MainActivity" android:exported="false"/>
+    <activity-alias android:name=".Angle" android:targetActivity=".MainActivity" android:enabled="true" android:exported="true" android:icon="@drawable/ic_geometry" android:label="@string/app_name">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".Triangle" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_triangle" android:label="@string/app_name">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".Diamond" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_diamond" android:label="@string/app_name">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+  </application>
+</manifest>

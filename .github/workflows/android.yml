@@ -1,30 +1,49 @@
-name: Собрать APK
+name: Android · tests and APK
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/*.test.cjs
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - name: Browser checks at phone widths
+        run: |
+          mkdir -p artifacts
+          python3 -m http.server 8123 --directory app/src/main/assets > /tmp/geometry-server.log 2>&1 &
+          CHROMIUM_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") npm run test:ui
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+      - name: Verify bundled source and signature
+        run: |
+          python3 tests/verify-apk.py app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk > artifacts/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: geometry-8-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: geometry-8-v2-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/reports/lint-results-debug.html
+            artifacts/
           if-no-files-found: error
