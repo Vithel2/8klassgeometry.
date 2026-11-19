@@ -37,6 +37,7 @@ let settings = {
   glass: "medium",
   motion: true,
   haptic: true,
+  questionCount: 10,
   icon: "Angle",
 };
 try {
@@ -46,6 +47,14 @@ try {
     ...JSON.parse(localStorage.getItem("geometry8-settings") || "{}"),
   };
 } catch {}
+settings.questionCount = readQuestionCount(settings.questionCount) || 10;
+store.seen = store.seen.filter(id => id !== 'logic');
+store.errors = store.errors.filter(q => q.topic !== 'logic');
+store.history = store.history.filter(h => h.topic !== 'logic' && !h.questions?.some(q=>q.topic==='logic'));
+function readQuestionCount(value){const str=String(value);return /^\d+$/.test(str)&&Number(str)>=1&&Number(str)<=100?Number(str):null;}
+function questionLabel(n){return `${n} ${n%10===1&&n%100!==11?'вопрос':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'вопроса':'вопросов'}`;}
+function countControl(){return `<div class="count-control"><div class="row"><label for="questionCount">Вопросов в тренировке</label><span class="badge">1–100</span></div><input id="questionCount" type="number" inputmode="numeric" min="1" max="100" step="1" value="${settings.questionCount}" aria-describedby="countError"><div class="count-presets">${[5,10,25,50,100].map(n=>`<button type="button" class="secondary" data-count="${n}" aria-pressed="${settings.questionCount===n}">${n}</button>`).join('')}</div><p id="countError" role="status" class="muted"></p></div>`;}
+function wireCountControl(){const input=$('#questionCount');if(!input)return;input.oninput=()=>{const n=readQuestionCount(input.value);input.setCustomValidity(n?'':'Введи целое число от 1 до 100.');$('#countError').textContent=n?'Выбор сохранён. В тренировке нет таймера.':'Введи целое число от 1 до 100.';if(n){settings.questionCount=n;applySettings();}document.querySelectorAll('[data-count]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.count)===n)));};document.querySelectorAll('[data-count]').forEach(b=>b.onclick=()=>{input.value=b.dataset.count;input.dispatchEvent(new Event('input'));});}
 let current = "home",
   session = null,
   clock = null,
@@ -55,6 +64,7 @@ let current = "home",
 const title = (id) => LESSONS.find((l) => l.id === id)?.title || id;
 function save() {
   try {
+    while(store.history.length>1 && JSON.stringify(store).length>1200000) store.history.pop();
     localStorage.setItem("geometry8", JSON.stringify(store));
     if (session)
       localStorage.setItem("geometry8-active", JSON.stringify(session));
@@ -131,17 +141,13 @@ function render(page) {
     ({ home, lessons, practice, formulas, settings: settingsPage })[page] ||
     home
   )();
+  window.syncGlass?.();
   window.scrollTo(0, 0);
 }
 function home() {
-  app.innerHTML = `<div class="tag">ГЕОМЕТРИЯ • 8 КЛАСС · 2.1</div><h1>Всё становится<br>понятнее.</h1><p class="muted">Правило, схема, пять шагов — и ты умеешь решать.</p><section class="hero"><div class="tag">ТВОЙ ТЕМП. ТВОИ ОТКРЫТИЯ.</div><h2>От первого рисунка<br>до уверенного ответа</h2><p>${LESSONS.length} темы, новые страницы тетради и отдельная логика. Всё работает без интернета.</p><button id="start" class="primary">Открыть темы ↗</button></section><section class="card"><span class="tag">НОВЫЕ СТРАНИЦЫ ТЕТРАДИ</span><h2>Пифагор на твоих примерах</h2><p>6 и 14, 20 и 21, высота к гипотенузе и проверка существования треугольника.</p><div class="buttons"><button id="newNotebook">Разобрать примеры</button><button id="newLogic" class="secondary">Таблицы истинности</button></div></section><div class="grid"><section class="card"><div class="stat">${store.seen.length}<small>/${LESSONS.length}</small></div><span class="muted">тем изучено</span></section><section class="card"><div class="stat">${store.total ? Math.round((100 * store.correct) / store.total) : 0}%</div><span class="muted">верно · ${store.total} ответов</span></section></div><section class="card"><span class="tag">ПРАКТИКА БЕЗ СПЕШКИ</span><h2>Попробуй самостоятельно</h2><p>Запиши ответ и свой ход решения. Сравни с образцом.</p><div class="buttons"><button id="self">Решать</button><button class="secondary" id="errors">Ошибки · ${store.errors.length}</button></div></section><section class="card"><h2>Пробный тест</h2><p>10 задач за 15 минут. Разбор после завершения.</p><button id="exam">Начать тест</button></section><button class="secondary" id="history">История · ${store.history.length}</button><details class="card"><summary>Пять шагов решения</summary><ol><li>Что дано?</li><li>Что найти?</li><li>Какая формула подходит и почему?</li><li>Подставь числа и вычисли.</li><li>Проверь ответ, единицы и смысл.</li></ol></details>`;
-  $("#newNotebook").onclick = () => lesson("notebook");
-  $("#newLogic").onclick = () => lesson("logic");
-  $("#start").onclick = () => render("lessons");
-  $("#self").onclick = () => startSession("self");
-  $("#errors").onclick = errors;
-  $("#exam").onclick = () => startSession("exam");
-  $("#history").onclick = history;
+ const rate=store.total?Math.round(store.correct/store.total*100):0;
+ app.innerHTML=`<div class="home-intro"><div class="tag">ГЕОМЕТРИЯ / 08 · 2.2</div><h1>Всё начинается<br>с <em>одной линии.</em></h1><p class="muted">Разобраться. Попробовать. Решить.</p></div><section class="hero studio-hero"><div class="hero-orbit" aria-hidden="true"><svg viewBox="0 0 300 280"><defs><linearGradient id="wire" x2="1" y2="1"><stop stop-color="#a9ffdb"/><stop offset="1" stop-color="#a1a4ff"/></linearGradient></defs><g fill="none" stroke="url(#wire)" stroke-width="1.3"><path d="M150 22L274 215L30 215ZM150 22L160 265L30 215M160 265L274 215M30 215L212 118L160 265M212 118L150 22"/><ellipse cx="151" cy="151" rx="143" ry="65" transform="rotate(-24 151 151)"/></g><g fill="#b7ffdf"><circle cx="150" cy="22" r="4"/><circle cx="274" cy="215" r="4"/><circle cx="30" cy="215" r="4"/></g></svg></div><div class="tag">ТВОЁ ПРОСТРАНСТВО ДЛЯ УЧЁБЫ</div><h2>От рисунка<br>к ответу.</h2><p>${LESSONS.length} темы. Схемы, короткие объяснения и примеры из твоей тетради.</p><button id="start" class="primary">Открыть темы <span>→</span></button><span class="hero-foot">БЕЗ СЕТИ · БЕЗ СПЕШКИ</span></section><div class="grid stats-grid"><section class="card"><span class="tag">ПРОЙДЕНО</span><div class="stat">${store.seen.length}<small> / ${LESSONS.length}</small></div><span class="muted">тем изучено</span></section><section class="card"><span class="tag">ТОЧНОСТЬ</span><div class="stat">${rate}<small>%</small></div><span class="muted">${store.total} ответов</span></section></div><section class="card training-feature"><div class="row"><span class="tag">ТВОЙ ТЕМП</span><span class="count-pill">${questionLabel(settings.questionCount)}</span></div><h2>Поймай ритм.</h2><p class="muted">Одна длинная тренировка вместо постоянных перезапусков. Длину выбираешь ты.</p><div class="buttons"><button id="self">Начать →</button><button class="secondary" id="configure">Настроить</button></div></section><section class="card notebook-feature"><span class="tag">ПО ТВОЕЙ ТЕТРАДИ</span><h2>От катетов до высоты.</h2><p class="muted">Пифагор, корни и задачи на площадь — с понятными шагами.</p><button id="newNotebook" class="secondary">Разобрать примеры →</button></section><section class="card"><span class="tag">ПРОВЕРКА ЗНАНИЙ</span><h2>Готов к контрольной?</h2><p class="muted">10 задач за 15 минут. Разбор после завершения.</p><button id="exam">Пробный тест →</button></section><div class="buttons"><button class="secondary" id="errors">Ошибки · ${store.errors.length}</button><button class="secondary" id="history">История · ${store.history.length}</button></div><details class="card"><summary>Пять шагов решения</summary><ol><li>Что дано?</li><li>Что найти?</li><li>Какая формула подходит?</li><li>Подставь числа.</li><li>Проверь единицы и ответ.</li></ol></details>`;
+ $('#start').onclick=()=>render('lessons');$('#newNotebook').onclick=()=>lesson('notebook');$('#self').onclick=()=>startSession('self');$('#configure').onclick=()=>render('practice');$('#errors').onclick=errors;$('#history').onclick=history;$('#exam').onclick=()=>startSession('exam');
 }
 function lessons() {
   app.innerHTML = `<div class="tag">БИБЛИОТЕКА ЗНАНИЙ</div><h1>От рисунка к решению</h1><label for="search">Поиск по темам и формулам</label><input id="search" type="search" placeholder="Например, Пифагор или высота"><div id="lessonList"></div>`;
@@ -166,7 +172,7 @@ function lessons() {
 }
 function lesson(id) {
   const l = LESSONS.find((x) => x.id === id);
-  app.innerHTML = `<button id="back" class="secondary">← Все темы</button><h1>${l.title}</h1><p class="muted">${l.sub}</p><section class="card">${l.id === "logic" ? logicTable() : fig(l.figure)}<p class="muted">${l.id === "logic" ? "Все четыре набора значений A и B." : "Обозначения на схеме. Рисунок не в масштабе."}</p><div class="formula">${l.formula}</div><p>${l.text}</p></section><section class="card"><span class="tag">РАЗБОР ПО ШАГАМ</span><p>${l.example}</p></section>${id === "properties" ? propertiesTable() : ""}<aside class="warning"><b>Частая ошибка</b><p>${l.trap}</p></aside><div class="buttons"><button id="train">Тренироваться</button><button id="learned" class="secondary">${store.seen.includes(id) ? "✓ Изучено" : "Отметить изученным"}</button></div>`;
+  app.innerHTML = `<button id="back" class="secondary">← Все темы</button><h1>${l.title}</h1><p class="muted">${l.sub}</p><section class="card">${fig(l.figure)}<p class="muted">Обозначения на схеме. Рисунок не в масштабе.</p><div class="formula">${l.formula}</div><p>${l.text}</p></section><section class="card"><span class="tag">РАЗБОР ПО ШАГАМ</span><p>${l.example}</p></section>${id === "properties" ? propertiesTable() : ""}<aside class="warning"><b>Частая ошибка</b><p>${l.trap}</p></aside><div class="buttons"><button id="train">Тренироваться</button><button id="learned" class="secondary">${store.seen.includes(id) ? "✓ Изучено" : "Отметить изученным"}</button></div>`;
   $("#back").onclick = lessons;
   $("#learned").onclick = () => {
     store.seen = store.seen.includes(id)
@@ -180,8 +186,10 @@ function lesson(id) {
   window.scrollTo(0, 0);
 }
 function practice() {
-  app.innerHTML = `<div class="tag">ЗНАНИЯ СТАНОВЯТСЯ НАВЫКОМ</div><h1>Твоя практика</h1><section class="card"><label for="topic">Тема</label><select id="topic"><option value="all">Все числовые темы геометрии</option>${LESSONS.map((l) => `<option value="${l.id}">${l.title}</option>`).join("")}</select><label for="mode">Режим</label><select id="mode"><option value="warm">Разминка · варианты ответа</option><option value="self">Самостоятельно · ввод ответа</option><option value="hard">Сложные · несколько шагов</option></select><p class="muted">5 задач. В самостоятельном и сложном режимах ответ и ход решения вводишь сам. Числовые результаты проверяются автоматически; доказательства — сравни с образцом.</p><button id="go">Начать</button><p id="modeMessage" role="status"></p></section><section class="card"><h2>Пробный тест</h2><p>10 задач без вариантов за 15 минут. Калькулятор доступен. Разбор в конце.</p><button id="exam">Начать тест</button></section>`;
+  app.innerHTML = `<div class="tag">ЗНАНИЯ СТАНОВЯТСЯ НАВЫКОМ</div><h1>Твоя практика</h1><section class="card"><label for="topic">Тема</label><select id="topic"><option value="all">Все числовые темы геометрии</option>${LESSONS.map((l) => `<option value="${l.id}">${l.title}</option>`).join("")}</select><label for="mode">Режим</label><select id="mode"><option value="warm">Разминка · варианты ответа</option><option value="self">Самостоятельно · ввод ответа</option><option value="hard">Сложные · несколько шагов</option></select>${countControl()}<p class="muted">В самостоятельном и сложном режимах ответ и ход решения вводишь сам. Числовые результаты проверяются автоматически; доказательства — сравни с образцом.</p><button id="go">Начать</button><p id="modeMessage" role="status"></p></section><section class="card"><h2>Пробный тест</h2><p>10 задач без вариантов за 15 минут. Калькулятор доступен. Разбор в конце.</p><button id="exam">Начать тест</button></section>`;
+  wireCountControl();
   $("#go").onclick = () => {
+    if(!readQuestionCount($("#questionCount").value)){$("#questionCount").reportValidity();return;}
     if ($("#topic").value === "properties" && $("#mode").value !== "warm") {
       $("#modeMessage").textContent =
         "Для устных свойств выбери разминку. Числовые темы доступны во всех режимах.";
@@ -202,7 +210,7 @@ function makeNewQuestion(topic, mode, i) {
     "trap",
     "similar",
   ];
-  const pool = LESSONS.filter((x) => x.id !== "properties" && x.subject !== "logic").map((x)=>x.id);
+  const pool = LESSONS.filter((x) => x.id !== "properties").map((x)=>x.id);
   const id =
     topic === "all"
       ? mode === "hard"
@@ -220,6 +228,7 @@ function makeNewQuestion(topic, mode, i) {
   return E.question(id, Math.random, mode === "hard");
 }
 function startSession(mode, topic = "all") {
+  if (!LESSONS.some(l=>l.id===topic) && topic!=="all") return;
   clearInterval(clock);
   current = "practice";
   document.querySelectorAll("[data-nav]").forEach((b) => {
@@ -229,7 +238,8 @@ function startSession(mode, topic = "all") {
       b.dataset.nav === "practice" ? "page" : "false",
     );
   });
-  const questions = Array.from({ length: mode === "exam" ? 10 : 5 }, (_, i) =>
+  window.syncGlass?.();
+  const questions = Array.from({ length: mode === "exam" ? 10 : settings.questionCount }, (_, i) =>
     makeNewQuestion(topic, mode, i),
   );
   session = {
@@ -268,7 +278,7 @@ function showQuestion() {
     q = s.questions[s.index],
     manual = s.mode !== "warm";
   const draft = s.drafts[s.index] || { values: [], solution: "" };
-  app.innerHTML = `<div class="row"><span class="tag">${{ warm: "РАЗМИНКА", self: "САМОСТОЯТЕЛЬНО", hard: "СЛОЖНЫЕ ЗАДАЧИ", exam: "ПРОБНЫЙ ТЕСТ" }[s.mode]}</span>${s.mode === "exam" ? '<b id="timer">15:00</b>' : ""}<button class="secondary" id="exit">Выйти</button></div><h2>Задача ${s.index + 1} из ${s.questions.length}</h2><progress value="${s.index}" max="${s.questions.length}" aria-label="Прогресс"></progress><section class="card"><p class="muted">${title(q.topic)}</p><h2>${q.q}</h2>${["part", "constructions","hypheight","cosine"].includes(q.topic) ? fig(q.topic === "constructions" ? "construction" : q.topic) : ""}${manual ? `<p class="muted">Дробные ответы округли до сотых. Можно вводить запятую, точку и точные выражения, например √(2) или 3*√(2).</p>${(q.fields || []).map((f, i) => `<label for="answer${i}">${f.label}${f.unit ? ` (${f.unit})` : ""}</label><input id="answer${i}" data-result="${i}" inputmode="text" autocomplete="off" value="${esc(draft.values[i] || "")}">`).join("")}<label for="solution">Моё решение</label><textarea id="solution" rows="4" placeholder="Дано → найти → формула → подстановка → проверка">${esc(draft.solution)}</textarea><p class="muted">Проверка чисел не проверяет доказательство. Твой текст сохранится рядом с образцом.</p><button id="submit">Принять ответ</button>` : q.options.map((v, i) => `<button class="answer" data-answer="${i}">${G.fmt(v)} ${q.unit}</button>`).join("")}<button class="secondary" id="calculator">Калькулятор</button><div id="feedback" role="status"></div></section>`;
+  app.innerHTML = `<div class="row"><span class="tag">${{ warm: "РАЗМИНКА", self: "САМОСТОЯТЕЛЬНО", hard: "СЛОЖНЫЕ ЗАДАЧИ", exam: "ПРОБНЫЙ ТЕСТ" }[s.mode]}</span>${s.mode === "exam" ? '<b id="timer">15:00</b>' : ""}<button class="secondary" id="exit">Выйти</button></div><h2>Задача ${s.index + 1} из ${s.questions.length}</h2><progress value="${s.index}" max="${s.questions.length}" aria-label="Прогресс"></progress><section class="card"><p class="muted">${title(q.topic)}</p><h2>${q.q}</h2>${["part", "constructions","hypheight","cosine"].includes(q.topic) ? fig(q.topic === "constructions" ? "construction" : q.topic) : ""}${manual ? `<p class="muted">Дробные ответы округли до сотых. Можно вводить запятую, точку и точные выражения, например √(2) или 3*√(2).</p>${(q.fields || []).map((f, i) => `<label for="answer${i}">${f.label}${f.unit ? ` (${f.unit})` : ""}</label><input id="answer${i}" data-result="${i}" inputmode="text" autocomplete="off" value="${esc(draft.values[i] || "")}">`).join("")}<label for="solution">Моё решение</label><textarea id="solution" rows="4" maxlength="6000" placeholder="Дано → найти → формула → подстановка → проверка">${esc(draft.solution)}</textarea><p class="muted">Проверка чисел не проверяет доказательство. Твой текст сохранится рядом с образцом.</p><button id="submit">Принять ответ</button>` : q.options.map((v, i) => `<button class="answer" data-answer="${i}">${G.fmt(v)} ${q.unit}</button>`).join("")}<button class="secondary" id="calculator">Калькулятор</button><div id="feedback" role="status"></div></section>`;
   $("#exit").onclick = () => navigate("practice");
   $("#calculator").onclick = openCalculator;
   if (manual) {
@@ -323,7 +333,6 @@ function accept(values, solution) {
   if (ok) store.correct++;
   else store.errors.unshift({ ...q, chosen: values, solution });
   store.errors = store.errors.slice(0, 40);
-  vibrate();
   save();
   showAccepted();
 }
@@ -368,13 +377,14 @@ function endSession(aborted, page) {
   else showAttempt(item);
 }
 function showAttempt(s) {
-  app.innerHTML = `<span class="tag">${s.aborted ? "ЗАНЯТИЕ ПРЕРВАНО" : "ЗАНЯТИЕ ЗАВЕРШЕНО"}</span><h1>${s.score} из ${s.questions.length} верно</h1><p>Принято ответов: ${s.answers.filter(Boolean).length}. ${new Date(s.ended).toLocaleString("ru")}</p><button id="again">К тренировкам</button>${s.questions
+  app.innerHTML = `<span class="tag">${s.aborted ? "ЗАНЯТИЕ ПРЕРВАНО" : "ЗАНЯТИЕ ЗАВЕРШЕНО"}</span><h1>${s.score} из ${s.questions.length} верно</h1><p>Принято ответов: ${s.answers.filter(Boolean).length}. ${new Date(s.ended).toLocaleString("ru")}</p><div class="buttons"><button id="repeat">Ещё ${questionLabel(s.questions.length)} →</button><button id="again" class="secondary">К тренировкам</button></div>${s.questions
     .map((q, i) => {
       const a = s.answers[i],
         d = s.drafts?.[i];
       return `<details class="card"><summary>${a?.ok ? "✓" : "○"} ${q.q}</summary><p>Твои ответы: ${esc(a?.values.join("; ") || d?.values.join("; ") || "не даны")}</p><h3>Моё решение</h3><p class="written">${esc(a?.solution || d?.solution || "Не записано")}</p><h3>Образец</h3><p>${q.explain}</p><p class="muted">Ход доказательства автоматически не оценивался.</p></details>`;
     })
     .join("")}`;
+  $("#repeat").onclick = () => {if(s.mode!=="exam"){settings.questionCount=s.questions.length;applySettings();}startSession(s.mode,s.topic);};
   $("#again").onclick = () => render("practice");
   window.scrollTo(0, 0);
 }
@@ -480,7 +490,9 @@ function settingsPage() {
     )
     .join(
       "",
-    )}<label class="check"><input id="motion" type="checkbox" ${settings.motion ? "checked" : ""}> Анимации</label><p class="muted">Системное уменьшение движения учитывается всегда.</p><label class="check"><input id="haptic" type="checkbox" ${settings.haptic ? "checked" : ""}> Тактильный отклик при ответе</label><p class="muted">Смена значка и тактильный отклик доступны в Android-приложении.</p><p id="iconStatus" role="status"></p></section><section class="card"><h2>Прогресс на этом устройстве</h2><p>Настройки, ответы и решения сохраняются после закрытия. Прогресс хранится в этом приложении. Вариант «Новые темы» имеет отдельный прогресс; данные старого приложения остаются в нём.</p><button id="reset" class="secondary">Сбросить прогресс</button></section><section class="card"><h2>О приложении</h2><p>Геометрия • 8 класс<br><b>Версия 2.1 · сборка 5</b></p><p>24 темы. Без интернета, аккаунта, рекламы и покупок. Числовая проверка не заменяет проверку доказательства учителем.</p></section>`;
+    )}<label class="check"><input id="motion" type="checkbox" ${settings.motion ? "checked" : ""}> Анимации</label><p class="muted">Системное уменьшение движения учитывается всегда.</p><label class="check"><input id="haptic" type="checkbox" ${settings.haptic ? "checked" : ""}> Вибрация нажатий</label><button class="secondary" id="testHaptic">Проверить отклик</button><p id="hapticStatus" class="muted" role="status">Вибрация зависит от настроек телефона.</p><p id="iconStatus" role="status"></p></section><section class="card"><h2>Длина тренировки</h2>${countControl()}</section><section class="card"><h2>Прогресс на этом устройстве</h2><p>Настройки, ответы и решения сохраняются после закрытия. Прогресс хранится в этом приложении. Вариант «Новые темы» имеет отдельный прогресс; данные старого приложения остаются в нём.</p><button id="reset" class="secondary">Сбросить прогресс</button></section><section class="card"><h2>О приложении</h2><p>Геометрия • 8 класс<br><b>Версия 2.2 · сборка 6</b></p><p>23 темы. Без интернета, аккаунта, рекламы и покупок. Числовая проверка не заменяет проверку доказательства учителем.</p></section>`;
+  wireCountControl();
+  $('#testHaptic').onclick=()=>{$('#hapticStatus').textContent=settings.haptic?(window.AndroidTheme?.haptic?'Короткий отклик отправлен телефону.':'Проверка вибрации доступна в Android-приложении.'):'Включи «Вибрация нажатий» выше.';};
   document.querySelectorAll("[data-setting]").forEach(
     (el) =>
       (el.onchange = () => {
@@ -613,12 +625,14 @@ render("home");
 try {
   const active = JSON.parse(localStorage.getItem("geometry8-active"));
   if (active?.questions?.length && active.index < active.questions.length) {
+    if(active.topic === "logic" || active.questions.some(q=>q.topic === "logic")){localStorage.removeItem("geometry8-active");throw Error("Removed topic");}
     session = active;
     current = "practice";
     showQuestion();
     startClock();
   }
 } catch {}
+save();
 
 // Formula substitution is available only in the reference section, never over a task.
 function formulaHelperHtml() {

@@ -2,5 +2,5 @@ plugins { id 'com.android.application' }
 android {
  namespace 'ru.geometry.trainer'
  compileSdk 35
- defaultConfig { applicationId (project.hasProperty('notebookInstall') ? 'ru.geometry.trainer.notebook' : 'ru.geometry.trainer'); manifestPlaceholders = [appLabel: project.hasProperty('notebookInstall') ? 'Геометрия · новые темы' : 'Геометрия • 8 класс']; minSdk 23; targetSdk 35; versionCode 5; versionName '2.1' }
+ defaultConfig { applicationId (project.hasProperty('notebookInstall') ? 'ru.geometry.trainer.notebook' : 'ru.geometry.trainer'); manifestPlaceholders = [appLabel: project.hasProperty('notebookInstall') ? 'Геометрия · новые темы' : 'Геометрия • 8 класс']; minSdk 23; targetSdk 35; versionCode 6; versionName '2.2' }
 }

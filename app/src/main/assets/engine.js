@@ -101,15 +101,6 @@
         q=`В прямоугольном треугольнике гипотенуза ${c} см. Прилежащий к углу α катет ${adj} см. Найди cos α.`;
         answer=adj/c;unit='';explain=`cos α = прилежащий катет / гипотенуза = ${adj}/${c} ≈ ${old.fmt(answer)}. Результат больше 0 и меньше 1, как и должен быть для острого угла.`;break;
       }
-      case "logic": {
-        const A=n(0,1,r),B=n(0,1,r),op=n(0,3,r);
-        const expr=['¬A ∨ ¬B','A ∧ B','A ∨ B','¬A'][op];
-        answer=[Number(!A||!B),Number(A&&B),Number(A||B),1-A][op];unit='';
-        q=`A = ${A}, B = ${B}. Найди X = ${expr}. Введи 0 или 1.`;
-        explain=`НЕ меняет 0 и 1 местами. И требует две единицы; ИЛИ — хотя бы одну. При A=${A}, B=${B}: ¬A=${1-A}, ¬B=${1-B}. Для выражения ${expr} получаем X=${answer}.`;
-        fields=[{label:'X (0 или 1)',answer,unit:''}];
-        return {topic,q,answer,unit,explain,fields,options:[0,1]};
-      }
       case "rightarea":
         q = `Катеты прямоугольного треугольника ${a} и ${b} см. Найди площадь.`;
         answer = (a * b) / 2;

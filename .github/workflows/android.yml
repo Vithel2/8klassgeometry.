@@ -23,6 +23,7 @@ jobs:
           mkdir -p artifacts
           python3 -m http.server 8123 --directory app/src/main/assets > /tmp/geometry-server.log 2>&1 &
           CHROMIUM_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") npm run test:ui
+          CHROMIUM_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") npm run test:upgrade
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

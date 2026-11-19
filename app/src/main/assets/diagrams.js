@@ -87,5 +87,3 @@ function propertiesTable() {
       "",
     )}</tbody></table></div><p class="muted">«Не всегда» значит: свойство бывает у частного случая, но не у любой фигуры этого типа. Таблицу можно прокрутить вбок.</p></section>`;
 }
-
-function logicTable(){return `<div class="table-scroll logic-table"><table><caption>Пример: X = ¬A ∨ ¬B</caption><thead><tr><th>A</th><th>B</th><th>¬A</th><th>¬B</th><th>X</th></tr></thead><tbody>${[[0,0],[0,1],[1,0],[1,1]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td><td>${1-a}</td><td>${1-b}</td><td>${Number(!a||!b)}</td></tr>`).join('')}</tbody></table></div>`;}

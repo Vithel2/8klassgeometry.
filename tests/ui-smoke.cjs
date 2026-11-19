@@ -17,19 +17,16 @@ const { chromium } = require("playwright"),
       await nav("practice");
       await page.selectOption("#mode", mode);
       await page.selectOption("#topic", topic);
+      await page.fill("#questionCount","5");await page.locator("#questionCount").dispatchEvent("input");
       await page.click("#go");
     };
   await page.click('#newNotebook');assert.match(await page.locator('h1').textContent(),/Новые задачи/);assert.match(await page.locator('main').textContent(),/15,23/);
-  await nav('home');await page.click('#newLogic');assert.equal(await page.locator('tbody tr').count(),4);assert.deepEqual(await page.locator('tbody tr td:last-child').allTextContents(),['1','1','1','0']);
-  await page.click('#train');assert.equal(await page.locator('[data-result]').count(),1);await page.fill('#answer0',await page.evaluate(()=>String(session.questions[0].answer)));await page.click('#submit');assert.match(await page.locator('#feedback').textContent(),/Верно/);await page.click('#exit');await page.click('#dialogYes');
   await go('hard','hypheight');assert.equal(await page.locator('[data-result]').count(),3);
   const newValues=await page.evaluate(()=>session.questions[0].fields.map(f=>String(f.answer)));
   for(let i=0;i<3;i++)await page.fill('#answer'+i,newValues[i]);await page.click('#submit');assert.match(await page.locator('#feedback').textContent(),/Верно/);
   await page.click('#exit');await page.click('#dialogYes');
-  await go('warm','logic');assert.equal(await page.locator('[data-answer]').count(),2);await page.click('#exit');await page.click('#dialogYes');
-  assert.ok(await page.evaluate(()=>Array.from({length:100},(_,i)=>makeNewQuestion('all','exam',i)).every(q=>q.topic!=='logic')));
   await nav("lessons");
-  assert.equal(await page.locator(".lesson").count(), 24);
+  assert.equal(await page.locator(".lesson").count(), 23);
   await page.fill("#search", "Пифагор");
   assert.equal(await page.locator(".lesson").count(), 4);
   await page.locator(".lesson").first().click();
@@ -108,7 +105,7 @@ const { chromium } = require("playwright"),
   }
   for (const width of [320,390,768]) {
     await page.setViewportSize({width,height:844});
-    for(const id of ['notebook','hypheight','cosine','logic']){
+    for(const id of ['notebook','hypheight','cosine']){
       await page.evaluate(id=>lesson(id),id);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`new lesson overflow ${width} ${id}`);
     }
@@ -257,7 +254,7 @@ const { chromium } = require("playwright"),
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(
-    "UI PASS: 24 topics, search, progress, all modes, multi-result check, draft restore, calculator, exit/cancel/native Back, timer over overlays, history, settings persistence, 320–768px + huge type, reduced motion.",
+    "UI PASS: 23 topics, search, progress, all modes, multi-result check, draft restore, calculator, exit/cancel/native Back, timer over overlays, history, settings persistence, 320–768px + huge type, reduced motion.",
   );
 })().catch((e) => {
   console.error(e);

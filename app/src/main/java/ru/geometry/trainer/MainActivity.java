@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
    return insets;
   });
   setSystemTheme(false);
+  web.setHapticFeedbackEnabled(true);
   web.addJavascriptInterface(new Object() {
    @JavascriptInterface public void setDarkMode(boolean dark) { runOnUiThread(() -> setSystemTheme(dark)); }
    @JavascriptInterface public void haptic() { runOnUiThread(() -> web.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)); }
