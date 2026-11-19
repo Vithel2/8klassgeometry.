@@ -79,6 +79,37 @@
       b = n(4, 15, r),
       k = n(2, 5, r);
     switch (topic) {
+      case "notebook": {
+        const bank = [
+          ['Катеты 6 и 14 см. Найди гипотенузу.',Math.sqrt(232),'см','c² = 6² + 14² = 232. c = √232 = 2·√58 ≈ 15,23 см.'],
+          ['Катеты 20 и 21 см. Найди гипотенузу.',29,'см','c² = 400 + 441 = 841. c = √841 = 29 см.'],
+          ['Гипотенуза 5 см, катет 3 см. Найди второй катет.',4,'см','Вычитаем квадраты: a² = 25 − 9 = 16. a = 4 см.'],
+          ['Катеты 6 и 6 см. Найди гипотенузу.',Math.sqrt(72),'см','c² = 36 + 36 = 72. c = √72 = 6·√2 ≈ 8,49 см.'],
+          ['Существуют ли стороны треугольника 2, 4 и 7 см? Введи 1, если да, и 0, если нет.',0,'','Две меньшие стороны дают 2 + 4 = 6 < 7. Неравенство треугольника нарушено, треугольник не существует.']
+        ];
+        [q,answer,unit,explain]=bank[n(0,bank.length-1,r)];break;
+      }
+      case "hypheight": {
+        const t = [[25,60,65],[5,12,13]][n(0,1,r)], [a,b,c]=t;
+        q=`Прямоугольный треугольник: катет ${a} см, гипотенуза ${c} см. Найди высоту к гипотенузе.`;
+        answer=a*b/c;
+        explain=`Второй катет: √(${c}² − ${a}²) = ${b} см. Площадь S = ${a}·${b}/2 = ${a*b/2} см². Высота h = 2S/c = ${a*b}/${c} ≈ ${old.fmt(answer)} см. Проверка: ch/2 = ab/2.`;
+        if(hard){q+=' Также найди второй катет и площадь.';fields=[{label:'Высота к гипотенузе',answer,unit:'см'},{label:'Второй катет',answer:b,unit:'см'},{label:'Площадь',answer:a*b/2,unit:'см²'}];}break;
+      }
+      case "cosine": {
+        const [a,b,c]=[[3,4,5],[5,12,13]][n(0,1,r)],adj=n(0,1,r)?a:b;
+        q=`В прямоугольном треугольнике гипотенуза ${c} см. Прилежащий к углу α катет ${adj} см. Найди cos α.`;
+        answer=adj/c;unit='';explain=`cos α = прилежащий катет / гипотенуза = ${adj}/${c} ≈ ${old.fmt(answer)}. Результат больше 0 и меньше 1, как и должен быть для острого угла.`;break;
+      }
+      case "logic": {
+        const A=n(0,1,r),B=n(0,1,r),op=n(0,3,r);
+        const expr=['¬A ∨ ¬B','A ∧ B','A ∨ B','¬A'][op];
+        answer=[Number(!A||!B),Number(A&&B),Number(A||B),1-A][op];unit='';
+        q=`A = ${A}, B = ${B}. Найди X = ${expr}. Введи 0 или 1.`;
+        explain=`НЕ меняет 0 и 1 местами. И требует две единицы; ИЛИ — хотя бы одну. При A=${A}, B=${B}: ¬A=${1-A}, ¬B=${1-B}. Для выражения ${expr} получаем X=${answer}.`;
+        fields=[{label:'X (0 или 1)',answer,unit:''}];
+        return {topic,q,answer,unit,explain,fields,options:[0,1]};
+      }
       case "rightarea":
         q = `Катеты прямоугольного треугольника ${a} и ${b} см. Найди площадь.`;
         answer = (a * b) / 2;
@@ -217,7 +248,7 @@
         return z;
       }
     }
-    fields = [{ label: "Ответ", answer, unit }];
+    fields = fields || [{ label: "Ответ", answer, unit }];
     if (hard && ["pythc", "diagonal", "rightarea"].includes(topic)) {
       q += ` Также найди ${topic === "rightarea" ? "гипотенузу" : "площадь треугольника с этими катетами"}.`;
       fields.push({
@@ -227,6 +258,7 @@
       });
       explain += ` Второй результат: ${topic === "rightarea" ? `√(${a * a + b * b})` : `${a} · ${b}/2`} = ${old.fmt(fields[1].answer)} ${fields[1].unit}.`;
     }
+    if(topic === 'notebook' && answer === 0) return {topic,q,answer,unit,explain,fields,options:[0,1]};
     const options = [answer, answer + 2, answer * 2, answer / 2].map(
       (x) => Math.round(x * 100) / 100,
     );

@@ -17,6 +17,13 @@ function fig(type) {
     extra =
       '<path d="M131.4 6.4V135M260 135L116 27" stroke-dasharray="4 3"/><path d="M131.4 125h10v10M110 35L118 41L124 33"/><text x="136" y="100">20</text><text x="195" y="65">28</text><text x="140" y="155">35</text><text x="62" y="70">25</text>';
   }
+  if (type === "hypheight") {
+    shape='M55 30V130H245Z';
+    extra='<path d="M55 130L96.2 51.7" stroke-dasharray="4 3"/><path d="M55 118h12v12M91.5 60.5L100.3 65.2L105 56.4"/><text x="28" y="85">a</text><text x="145" y="150">b</text><text x="165" y="70">c</text><text x="66" y="87">h</text>';
+  }
+  if (type === "cosine") {
+    shape='M55 30V130H245Z';extra='<path d="M55 118h12v12"/><text x="25" y="85">3</text><text x="145" y="150">4</text><text x="165" y="70">5</text><text x="198" y="123">α</text><text x="63" y="62">β</text>';
+  }
   if (type === "right") {
     shape = "M55 30V130H245Z";
     extra =
@@ -80,3 +87,5 @@ function propertiesTable() {
       "",
     )}</tbody></table></div><p class="muted">«Не всегда» значит: свойство бывает у частного случая, но не у любой фигуры этого типа. Таблицу можно прокрутить вбок.</p></section>`;
 }
+
+function logicTable(){return `<div class="table-scroll logic-table"><table><caption>Пример: X = ¬A ∨ ¬B</caption><thead><tr><th>A</th><th>B</th><th>¬A</th><th>¬B</th><th>X</th></tr></thead><tbody>${[[0,0],[0,1],[1,0],[1,1]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td><td>${1-a}</td><td>${1-b}</td><td>${Number(!a||!b)}</td></tr>`).join('')}</tbody></table></div>`;}

@@ -5,20 +5,20 @@ const G = require("../app/src/main/assets/questions.js"),
   L = require("../app/src/main/assets/content.js");
 let seed = 78491;
 const r = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
-test("All 20 topics: finite results, distinct options, consistent answer and feasible heights", () => {
-  assert.equal(L.length, 20);
+test("All 24 topics: finite results, distinct options, consistent answer and feasible heights", () => {
+  assert.equal(L.length, 24);
   for (const l of L)
     for (let i = 0; i < 300; i++) {
       const q = E.question(l.id, r, true);
       assert.ok(q.q && q.explain);
-      assert.equal(new Set(q.options).size, 4);
+      assert.equal(new Set(q.options).size, ["logic","notebook"].includes(l.id)&&q.answer===0||l.id==="logic" ? 2 : 4);
       if (typeof q.answer === "string") {
         assert.ok(q.options.includes(q.answer));
         continue;
       }
       assert.ok(q.fields.length);
       for (const f of q.fields) {
-        assert.ok(Number.isFinite(f.answer) && f.answer > 0);
+        assert.ok(Number.isFinite(f.answer) && (f.answer > 0 || (["logic","notebook"].includes(l.id) && f.answer === 0)));
         assert.ok(E.matches(String(f.answer), f.answer));
         assert.ok(E.matches(f.answer.toFixed(2).replace(".", ","), f.answer));
       }
@@ -89,6 +89,11 @@ test("Independently recompute every generated numeric answer", () => {
           .map((x) => Number(x.replace(",", ".")));
       let expected;
       switch (l.id) {
+        case "notebook":
+          expected = q.q.includes('Существуют') ? 0 : q.q.startsWith('Гипотенуза') ? Math.sqrt(v[0]**2-v[1]**2) : Math.hypot(v[0],v[1]); break;
+        case "hypheight": expected=v[0]*Math.sqrt(v[1]**2-v[0]**2)/v[1]; break;
+        case "cosine": expected=v[1]/v[0];break;
+        case "logic": expected=q.q.includes('¬A ∨ ¬B')?Number(!v[0]||!v[1]):q.q.includes('A ∧ B')?Number(v[0]&&v[1]):q.q.includes('A ∨ B')?Number(v[0]||v[1]):1-v[0];break;
         case "rect":
           expected = 2 * (v[0] + v[1]);
           break;
@@ -150,4 +155,16 @@ test("Independently recompute every generated numeric answer", () => {
         q.q + " " + expected + " != " + q.answer,
       );
     }
+});
+test('New notebook examples: exact roots, height, area, impossible triangle and logic',()=>{
+ const examples=[Math.sqrt(232),29,4,Math.sqrt(72),0];
+ examples.forEach((expected,i)=>{let calls=0;const q=E.question('notebook',()=>calls++<3?0:(i+.1)/5);assert.ok(Math.abs(q.answer-expected)<1e-12);assert.ok(q.options.some(v=>E.matches(String(v),expected)));});
+ const height=E.question('hypheight',()=>0,true);
+ assert.deepEqual(height.fields.map(f=>f.answer),[300/13,60,750]);
+ assert.ok(E.matches('1500/65',height.answer));assert.ok(E.matches('23,08',height.answer));assert.ok(!E.matches('23',height.answer));
+ assert.ok(E.matches('2*√(58)',Math.sqrt(232)));assert.ok(E.matches('6*√(2)',Math.sqrt(72)));
+ for(let A=0;A<2;A++)for(let B=0;B<2;B++)for(let op=0;op<4;op++){
+  const seq=[0,0,0,(A+.1)/2,(B+.1)/2,(op+.1)/4];let i=0;
+  const q=E.question('logic',()=>seq[i++]);assert.equal(q.answer,[Number(!A||!B),A&B,A|B,1-A][op]);assert.deepEqual(q.options,[0,1]);
+ }
 });
